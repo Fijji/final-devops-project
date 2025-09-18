@@ -1,0 +1,67 @@
+pipeline {
+  agent any
+
+  environment {
+    ACCOUNT_ID     = '462994745952'
+    AWS_REGION     = 'us-west-2'
+    ECR_REPO_NAME  = 'final-django'
+    CHART_REPO_URL = 'git@github.com:Fijji/final-devops-project.git'
+    CHART_BRANCH   = 'final-project'
+    CHART_PATH     = 'charts/django-app/values.yaml'
+    AWS_CREDS_ID   = 'aws-credentials'
+    GIT_SSH_KEY_ID = 'helm-repo-deploy-key'
+    REGISTRY       = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+    ECR_REPO       = "${REGISTRY}/${ECR_REPO_NAME}"
+    IMAGE_TAG      = "${env.GIT_COMMIT.take(7)}"
+    IMAGE_FULL     = "${ECR_REPO}:${IMAGE_TAG}"
+  }
+
+
+  stages {
+    stage('ECR login') {
+      steps {
+        withCredentials([string(credentialsId: "${AWS_CREDS_ID}", variable: 'AWS_ACCESS_KEY_ID'), string(credentialsId: "${AWS_CREDS_ID}", variable: 'AWS_SECRET_ACCESS_KEY')]) {
+          sh '''
+            set -e
+            export AWS_DEFAULT_REGION="${AWS_REGION}"
+            PASS="$(aws ecr get-login-password --region "$AWS_REGION")"
+            echo "Logging into ECR..."
+            aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "${REGISTRY}"
+            echo "ECR login successful"
+          '''
+        }
+      }
+    }
+
+    stage('Build & Push image') {
+      steps {
+        sh '''
+          set -e
+          echo "Building Docker image: ${IMAGE_FULL}"
+          docker build -t "${IMAGE_FULL}" .
+          echo "Pushing image to ECR..."
+          docker push "${IMAGE_FULL}"
+          echo "Image pushed successfully: ${IMAGE_FULL}"
+        '''
+      }
+    }
+
+    stage('Update Helm values (Manual)') {
+      steps {
+        sh '''
+          echo "Image built and pushed: ${IMAGE_FULL}"
+          echo "To update Helm chart manually:"
+          echo "1. Update charts/django-app/values.yaml"
+          echo "2. Set image.repository to: ${ECR_REPO}"
+          echo "3. Set image.tag to: ${IMAGE_TAG}"
+          echo "4. Commit and push to trigger Argo CD"
+        '''
+      }
+    }
+  }
+
+  post {
+    success { echo "Pushed ${IMAGE_FULL} and updated ${CHART_PATH}" }
+    failure { echo "Build failed" }
+  }
+}

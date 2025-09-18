@@ -1,0 +1,20 @@
+controller:
+  serviceType: LoadBalancer
+  persistence:
+    enabled: true
+    storageClass: gp3
+    size: 20Gi
+
+  JCasC:
+    configScripts:
+      welcome-message: |
+        jenkins:
+          systemMessage: "Welcome to Jenkins on EKS!"
+      admin-user: |
+        jenkins:
+          securityRealm:
+            local:
+              allowsSignup: false
+              users:
+                - id: "admin"
+                  password: "change-me"

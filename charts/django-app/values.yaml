@@ -1,0 +1,22 @@
+image:
+  repository: ""
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8000
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+env:
+  DJANGO_SETTINGS_MODULE: "project.settings"
+  SECRET_KEY: "dev-secret-key"
+  DEBUG: "false"
+  ALLOWED_HOSTS: "*"
+  DATABASE_URL: "postgres://appuser:apppass@db:5432/appdb"

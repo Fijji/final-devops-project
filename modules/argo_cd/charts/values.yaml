@@ -1,0 +1,5 @@
+appsRepoUrl: "{{ .Values.apps_repo_url }}"
+appsRepoRev: "{{ .Values.apps_repo_rev }}"
+appsRepoPath: "{{ .Values.apps_repo_path }}"
+appName: "{{ .Values.app_name }}"
+appNamespace: "{{ .Values.app_namespace }}"
